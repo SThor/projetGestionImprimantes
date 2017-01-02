@@ -27,6 +27,32 @@ char* recupererTypeFichier(const char* cheminFichier) {
     return point + 1;
 }
 
+void printRequete(Requete * requete){
+	printf("Emetteur : %d\n", requete->emetteur);
+	printf("idDemande : %d\n", requete->idDemande);
+	char typeRequete[100];
+	switch (requete->type){
+		case IMPRESSION:
+			strcpy(typeRequete, "Impression");
+			break;
+		case ETAT_IMPRESSION:
+			strcpy(typeRequete, "Etat d'une impression");
+			break;
+		case ANNULATION_IMPRESSION:
+			strcpy(typeRequete, "Arret d'une impression");
+			break;
+		case ETAT_IMPRIMANTE:
+			strcpy(typeRequete, "Etat d'une imprimante");
+			break;
+		default:
+			strcpy(typeRequete, "Type de requete inconnu");
+			break;
+	}
+	printf("Type de requete : %s\n", typeRequete);
+	printf("Imprimante : %s\n", requete->nomImprimante);
+	printf("Fichier : %s\n", requete->nomFichier);
+}
+
 void creerRequeteImpression(Requete * requete){
 	TypeRequete type;
 	char nomImprimante[255];
@@ -95,6 +121,8 @@ void creerRequeteEtatImprimante(Requete * requete){
 }
 
 int envoyerRequete(Requete * requete){
+	printRequete(requete);
+
 	if (requete->type == IMPRESSION || requete->type == ETAT_IMPRESSION || requete->type == ANNULATION_IMPRESSION || requete->type == ETAT_IMPRIMANTE) {
         	int numCommunication;
         	int lgRequete;
@@ -116,32 +144,6 @@ int envoyerRequete(Requete * requete){
 				return 2;
 				}
 		}
-}
-
-void printRequete(Requete * requete){
-	printf("Emetteur : %d\n", requete->emetteur);
-	printf("idDemande : %d\n", requete->idDemande);
-	char typeRequete[100];
-	switch (requete->type){
-		case 1:
-			typeRequete = "Impression";
-			break;
-		case 2:
-			typeRequete = "Etat d'une impression";
-			break;
-		case 3:
-			typeRequete = "Annulation d'une impression";
-			break;
-		case 4:
-			typeRequete = "Etat d'une imprimante";
-			break;
-		default:
-			typeRequete = "Type de requete inconnu";
-			break;
-	}
-	printf("Type de requete : %s\n", typeRequete);
-	printf("Imprimante : %s\n", requete->nomImprimante);
-	printf("Fichier : %s\n", requete->nomFichier);
 }
 
 int main(int argc, char** argv) {
@@ -192,7 +194,7 @@ int main(int argc, char** argv) {
         
         int numErreur;
         if(numErreur = envoyerRequete(&requete)!=0){
-			fprintf(stderr, "Client: erreur envoi de la requete %s\n", requete.type);
+			fprintf(stderr, "Client: erreur envoi de la requete\n");
 			return numErreur;
         }
 
