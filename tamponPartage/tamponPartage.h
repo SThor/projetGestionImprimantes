@@ -47,4 +47,7 @@ void deposer(Moniteur *moniteur, void *buffer, int size);
 /* Retrait synchronise qui retourne la taille du pointeur du buffer de retrait */
 int retirer(Moniteur *moniteur, void **buffer);
 
+/* Retourne le nombre de cases remplies */
+int getNbCasesRemplies(Moniteur *moniteur);
+
 #endif
