@@ -233,5 +233,8 @@ int main(int argc, char** argv) {
 		}
 	}
 	printf("\tCUPS Backends et imprimantes locales en marche\n");
-	sleep(1);
+	
+	while(1) {
+		sleep(1);
+	}
 }
