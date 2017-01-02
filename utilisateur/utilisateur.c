@@ -6,6 +6,9 @@
  */
  
 #include "utilisateur.h"
+#include "communication.h"
+
+#define NOM_SERVEUR "serveurImpression1";
  
 long recupererTailleFichier(const char* cheminFichier) { 
    struct stat s; 
@@ -94,8 +97,11 @@ int main(int argc, char** argv) {
 		        type = ETAT_IMPRESSION;
 		        requete.type = type;
 		        requete.fichier = NULL;
-		        requete.nomImprimante = "";
-		        
+		        printf("Veuillez entrer le nom de l'imprimante sur laquelle vous voulez l'état de l'impression : ");
+				char* nomImprimante;
+				scanf("%s", nomImprimante);
+				requete.nomImprimante = nomImprimante;
+				
 		        //TODO creer requete de demande d'etat d'avancement d'une impression
 		        
 		        break;
@@ -111,6 +117,10 @@ int main(int argc, char** argv) {
 		   	 	printf("\n\n%s---------- Etat d'une imprimante ----------\n%s", GRN, RESET);
 		        type = ETAT_IMPRIMANTE;
 		        requete.type = type;
+		        printf("Veuillez entrer le nom de l'imprimante dont vous voulez l'état : ");
+				char* nomImprimante;
+				scanf("%s", nomImprimante);
+				requete.nomImprimante = nomImprimante;
 		        
 		        //TODO creer requete de demande d'etat d'une imprimante
 		        
@@ -122,10 +132,26 @@ int main(int argc, char** argv) {
         }
         
         if (requete.type == IMPRESSION || requete.type == ETAT_IMPRESSION || requete.type == ANNULATION_IMPRESSION || requete.type == ETAT_IMPRIMANTE) {
-        	//TODO effectuer l'envoi de la requete
-        	//demanderCommunication (attendre l'acceptation du serveur)
-        	//envoyerOctets
-        }
+        	int numCommunication;
+
+        	// se connecter au serveur
+			if ((numCommunication = demanderCommunication(NOM_SERVEUR)) < 0)
+				{
+				fprintf(stderr, "Client: erreur connexion %s\n", messageErreur((RetourCommunication)numCommunication));
+				return 1;
+				}
+
+			// envoyer la requête
+			lgRequete = sizeof(Requete);
+		    if (envoyerOctets(numCommunication, requete, lgRequete) != lgRequete)
+				{
+				fprintf(stderr, "Client: erreur envoi de la requête %s\n", fichierDemande);
+				return 2;
+				}
+
+			//TODO gérer la réponse du serveur
+		}
+		    	
         
         choixInterface = 0;
     }
