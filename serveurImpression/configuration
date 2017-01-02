@@ -1,0 +1,13 @@
+@ nom_serveur
+serveur serveurImpression1
+
+@ imprimantes_locales
+locale imprimante1
+locale imprimante2
+locale imprimante3
+locale imprimante4
+
+@ imprimantes_distantes
+distante imprimante5
+distante imprimante6
+distante imprimante7

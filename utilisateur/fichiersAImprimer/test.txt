@@ -1,0 +1,4 @@
+Ceci est un 
+essai d'impression 
+d'un fichier texte
+sur plusieurs lignes.
