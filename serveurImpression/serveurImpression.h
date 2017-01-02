@@ -16,13 +16,8 @@ typedef struct{
 	int type;
 } Imprimante;
 
-typedef struct{
-	int numServeur;
-	char* nom;
-} Serveur;
-
-/* Initialisation du serveur d'impression */
-Serveur initialiserServeurImpression();
+/* Initialisation des imprimantes */
+void* initialiserImprimantes();
 
 /* Creation d'une imprimante */
 Imprimante creerImprimante();
@@ -42,8 +37,8 @@ void* imprimer(Imprimante imprimante, Requete requete);
 /* Arret d'une demande d'impression */
 void* arreterImpression(Imprimante imprimante);
 
-/* Creation d'un serveur */
-Serveur creerServeur();
+/* Initialisation du serveur d'impression */
+int initialiserServeurImpression();
 
 /* Tache CUPS Scheduler */
 void* cupsScheduler();
