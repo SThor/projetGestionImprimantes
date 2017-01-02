@@ -9,13 +9,14 @@
 
 #define CHEMIN_CONFIGURATION "configuration"
 
-Serveur serveur;
-
 Imprimante * imprimantes;
 int nbImprimantes;
 
-/* Lecture du fichier de configuration */
-void* lectureConfiguration() {
+/* Initialisation du serveur d'impression */
+Serveur initialiserServeurImpression() {
+	Serveur serveurI;
+	int serveurInitialise = 0;
+	char* nomServeur = "";
 	imprimantes = (Imprimante *) malloc(sizeof(Imprimante));
 	nbImprimantes = 0;
 	FILE* fichier = NULL;
@@ -35,7 +36,16 @@ void* lectureConfiguration() {
 			char* contenuLigne = strtok(ligne, " ");
 			if (strcmp(&contenuLigne[0], "serveur") == 0) {
 				contenuLigne = strtok(NULL, " ");
-				serveur.nom = contenuLigne;		
+				for (int i = 0; contenuLigne[i] != '\0'; i++) {
+					if (contenuLigne[i] == '\n') {
+					  	contenuLigne[i] = '\0';
+					}
+				}
+				nomServeur = contenuLigne;
+				if (serveurInitialise == 0) {
+					serveurI = creerServeur(nomServeur);
+					serveurInitialise = 1;
+				}
 			} else if (strcmp(&contenuLigne[0], "locale") == 0) {
 				type = 0;
 				contenuLigne = strtok(NULL, " ");
@@ -69,8 +79,9 @@ void* lectureConfiguration() {
 					imprimantes[nbImprimantes++] = imprimante;
 				}
 			}
-		}	
+		}
 		fclose(fichier);
+		return serveurI;
 	} else {
 		fprintf(stderr, "%s/!\\ Le fichier configuration %s n'existe pas. /!\\%s", RED, CHEMIN_CONFIGURATION, RESET);
 		exit(1);
@@ -113,32 +124,65 @@ Imprimante* chercherImprimante(char* nom) {
 }
 
 /* Demarrage de l'imprimante */
-void* demarrerImprimante(Imprimante imprimante) {}
+void* demarrerImprimante(Imprimante imprimante) {
+	
+}
 
 /* Arret de l'imprimante */
-void* arreterImprimante(Imprimante imprimante) {}
+void* arreterImprimante(Imprimante imprimante) {
+	
+}
 
 /* Traiter une demande d'impression */
-void* imprimer(Imprimante imprimante, Requete requete) {}
+void* imprimer(Imprimante imprimante, Requete requete) {
+	
+}
 
 /* Arret d'une demande d'impression */
-void* arreterImpression(Imprimante imprimante) {}
+void* arreterImpression(Imprimante imprimante) {
+	
+}
 
 /* Creation d'un serveur */
-Serveur creerServeur() {}
+Serveur creerServeur(char* nom) {
+	printf("\t- Lancement du serveur d'impression %s\n", nom);
+	Serveur serveurS;
+	serveurS.nom = (char*) malloc(sizeof(char));
+	serveurS.nom = nom;
+	unlink(nom);
+	int numServeur;
+	if ((numServeur = initialiserServeur(serveurS.nom)) < 0) {
+		fprintf(stderr, "%s/!\\ Erreur d'initialisation du serveur d'impression %s. /!\\%s", RED, serveurS.nom, RESET);
+		exit(1);
+	}
+	serveurS.numServeur = numServeur;
+	return serveurS;
+}
 
 /* Tache CUPS Scheduler */
-void* cupsScheduler() {}
+void* cupsScheduler() {
+	
+}
 
 /* Tache CUPS Filter */
-void* cupsFilter() {}
+void* cupsFilter() {
+	
+}
 
 /* Tache CUPS Backend */
-void* cupsBackend() {}
+void* cupsBackend() {
+	
+}
  
 /* Tache Gestion Imprimante */
-void* gestionImprimante() {}
+void* gestionImprimante() {
+	
+}
 
 int main(int argc, char** argv) {
-	lectureConfiguration();
+	Serveur serveur;
+	printf("\nInitialisation du serveur d'impression\n");
+	serveur = initialiserServeurImpression();
+	printf("%d - %s\n", serveur.numServeur, serveur.nom);
+	
 }

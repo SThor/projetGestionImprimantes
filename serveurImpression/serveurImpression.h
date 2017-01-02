@@ -21,8 +21,8 @@ typedef struct{
 	char* nom;
 } Serveur;
 
-/* Lecture du fichier de configuration */
-void* lectureConfiguration();
+/* Initialisation du serveur d'impression */
+Serveur initialiserServeurImpression();
 
 /* Creation d'une imprimante */
 Imprimante creerImprimante();
