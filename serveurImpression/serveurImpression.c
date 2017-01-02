@@ -45,6 +45,12 @@ void* lectureConfiguration() {
 					}
 				}
 				nom = contenuLigne;
+				while (chercherImprimante(nom) != NULL) {
+					char* nomBis = (char*) malloc(sizeof(char)*3 + sizeof(imprimante.nom));
+					sprintf(nomBis, "%sbis", imprimante.nom);
+				} else {
+					
+				}
 				imprimante = creerImprimante(nom, type);
 				if (nbImprimantes != 0) {
 					imprimantes = (Imprimante *) realloc(imprimantes, sizeof(Imprimante)*(nbImprimantes+1));
@@ -99,7 +105,14 @@ Imprimante creerImprimante(char* nom, int type) {
 }
 
 /* Recherche d'une imprimante */
-Imprimante trouverImprimante(char* nom) {}
+Imprimante chercherImprimante(char* nom) {
+	for (int i = 0; i < nbImprimantes; i++) {
+		if (strcmp(nom, imprimantes[i].nom) == 0) {
+			return imprimantes[i];
+		}
+	}
+	return NULL;
+}
 
 /* Demarrage de l'imprimante */
 void* demarrerImprimante(Imprimante imprimante) {}
