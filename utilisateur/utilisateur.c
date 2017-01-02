@@ -69,13 +69,13 @@ void creerRequeteImpression(Requete * requete){
 			printf("Veuillez entrer le nombre de copies souhaitee (> 0) : ");
 			scanf("%d", &nbCopies);
 		}
-		requete->nbCopies = nbCopies;
+		requete->options.nbCopies = nbCopies;
 		int rectoVerso = -1;
 		while (rectoVerso != 0 && rectoVerso != 1) {
 			printf("Veuillez entrer le type d'impression souhaitee (0 = Recto, 1 = Recto/Verso) : ");
 			scanf("%d", &rectoVerso);
 		}
-		requete->rectoVerso = rectoVerso;
+		requete->options.rectoVerso = rectoVerso;
 	} else {
 		printf("%s/!\\ Le chemin de fichier specifie ne pointe aucun fichier. /!\\%s", RED, RESET);
 		sleep(1);
@@ -116,6 +116,32 @@ int envoyerRequete(Requete * requete){
 				return 2;
 				}
 		}
+}
+
+void printRequete(Requete * requete){
+	printf("Emetteur : %d\n", requete->emetteur);
+	printf("idDemande : %d\n", requete->idDemande);
+	char typeRequete[100];
+	switch (requete->type){
+		case 1:
+			typeRequete = "Impression";
+			break;
+		case 2:
+			typeRequete = "Etat d'une impression";
+			break;
+		case 3:
+			typeRequete = "Annulation d'une impression";
+			break;
+		case 4:
+			typeRequete = "Etat d'une imprimante";
+			break;
+		default:
+			typeRequete = "Type de requete inconnu";
+			break;
+	}
+	printf("Type de requete : %s\n", typeRequete);
+	printf("Imprimante : %s\n", requete->nomImprimante);
+	printf("Fichier : %s\n", requete->nomFichier);
 }
 
 int main(int argc, char** argv) {
