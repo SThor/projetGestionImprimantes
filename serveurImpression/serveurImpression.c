@@ -46,14 +46,12 @@ void* lectureConfiguration() {
 				}
 				nom = contenuLigne;
 				while (chercherImprimante(nom) != NULL) {
-					char* nomBis = (char*) malloc(sizeof(char)*3 + sizeof(imprimante.nom));
-					sprintf(nomBis, "%sbis", imprimante.nom);
-				} else {
-					
+					nom = (char*) realloc(nom, sizeof(char)*3 + sizeof(nom));
+					sprintf(nom, "%sbis", nom);
 				}
 				imprimante = creerImprimante(nom, type);
 				if (nbImprimantes != 0) {
-					imprimantes = (Imprimante *) realloc(imprimantes, sizeof(Imprimante)*(nbImprimantes+1));
+					imprimantes = (Imprimante*) realloc(imprimantes, sizeof(Imprimante)*(nbImprimantes+1));
 					imprimantes[nbImprimantes++] = imprimante;
 				}
 			} else if (strcmp(&contenuLigne[0], "distante") == 0) {
@@ -67,7 +65,7 @@ void* lectureConfiguration() {
 				nom = contenuLigne;
 				imprimante = creerImprimante(nom, type);
 				if (nbImprimantes != 0) {
-					imprimantes = (Imprimante *) realloc(imprimantes, sizeof(Imprimante)*(nbImprimantes+1));
+					imprimantes = (Imprimante*) realloc(imprimantes, sizeof(Imprimante)*(nbImprimantes+1));
 					imprimantes[nbImprimantes++] = imprimante;
 				}
 			}
@@ -92,7 +90,7 @@ Imprimante creerImprimante(char* nom, int type) {
 	}
 	
 	char* cheminImprimante = (char*) malloc(sizeof(char)*3 + sizeof(imprimante.nom));
-	sprintf(cheminImprimante, "../imprimantes/%s", imprimante.nom);
+	sprintf(cheminImprimante, "imprimantes/%s", imprimante.nom);
 	
 	FILE* fichier = NULL;
 	fichier = fopen(cheminImprimante, "w");
@@ -105,10 +103,10 @@ Imprimante creerImprimante(char* nom, int type) {
 }
 
 /* Recherche d'une imprimante */
-Imprimante chercherImprimante(char* nom) {
+Imprimante* chercherImprimante(char* nom) {
 	for (int i = 0; i < nbImprimantes; i++) {
 		if (strcmp(nom, imprimantes[i].nom) == 0) {
-			return imprimantes[i];
+			return &imprimantes[i];
 		}
 	}
 	return NULL;

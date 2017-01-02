@@ -28,7 +28,7 @@ void* lectureConfiguration();
 Imprimante creerImprimante();
 
 /* Recherche d'une imprimante */
-Imprimante chercherImprimante(char* nom);
+Imprimante* chercherImprimante(char* nom);
 
 /* Demarrage de l'imprimante */
 void* demarrerImprimante(Imprimante imprimante);
