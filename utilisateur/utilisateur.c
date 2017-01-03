@@ -49,126 +49,6 @@ void imprimerRequete(Requete requete){
 	}
 	printf("Type de requete : %s\n", typeRequete);
 	printf("Imprimante : %s\n", requete.nomImprimante);
-	printf("Fichier : %s\n", requete.nomFichier);
-}
-
-int creerRequeteImpression(Requete requete) {
-	TypeRequete type;
-	char nomImprimante[255];
-
-    printf("\n\n%s---------- Impression d'un fichier ----------\n%s", GRN, RESET);
-    type = IMPRESSION;
-    requete.type = type;
-	FILE* fichier = NULL;
-    char cheminFichier[255];
-	long tailleFichier = 0;
-	char* typeFichier = "";
-	int caractereActuel = 0;
-	char* contenu = "";
-    printf("Veuillez entrer le chemin vers le fichier a imprimer : ");
-    scanf("%s", cheminFichier);
-	fichier = fopen(cheminFichier, "r");
-	if (fichier != NULL) {
-		tailleFichier = recupererTailleFichier(cheminFichier);
-		typeFichier = recupererTypeFichier(cheminFichier);
-		contenu = malloc(sizeof(char) * tailleFichier);
-		for (int i = 0; i < tailleFichier - 1; i++){
-			caractereActuel = fgetc(fichier);
-			contenu[i] = caractereActuel;
-		}
-		
-		fclose(fichier);
-		
-		requete.nomFichier = malloc(sizeof(char) * sizeof(cheminFichier));
-		strcpy(requete.nomFichier, cheminFichier);
-		
-		requete.fichier = malloc(sizeof(char) * tailleFichier);
-		requete.fichier = contenu;
-		requete.tailleFichier = tailleFichier;
-		requete.typeFichier = typeFichier;
-	
-		//TODO amelioration : demander au serveur les imprimantes disponibles
-	
-		printf("Veuillez entrer le nom de l'imprimante : ");
-		scanf("%s", nomImprimante);
-		requete.nomImprimante = nomImprimante;
-		int nbCopies = 0;
-		while (nbCopies <= 0) {
-			printf("Veuillez entrer le nombre de copies (> 0) : ");
-			scanf("%d", &nbCopies);
-		}
-		requete.nbCopies = nbCopies;
-		int rectoVerso = -1;
-		while (rectoVerso != 0 && rectoVerso != 1) {
-			printf("Veuillez entrer le type d'impression (0 = Recto, 1 = Recto/Verso) : ");
-			scanf("%d", &rectoVerso);
-		}
-		requete.rectoVerso = rectoVerso;
-		return 1;
-	} else {
-		printf("%s/!\\ Le chemin de fichier specifie ne pointe aucun fichier. /!\\%s", RED, RESET);
-		return 0;
-	}
-}
-
-int creerRequeteEtatImpression(Requete requete){
-	TypeRequete type;
-	char nomImprimante[255];
-	
-	printf("\n\n%s---------- Etat d'avancement d'une impression ----------\n%s", GRN, RESET);
-    type = ETAT_IMPRESSION;
-    requete.type = type;
-    requete.fichier = NULL;
-    printf("Veuillez entrer le nom de l'imprimante : ");
-	scanf("%s", nomImprimante);
-	requete.nomImprimante = nomImprimante;
-	
-	//TODO Completer la requete avec les informations de l'impression
-	
-	if(strcmp(requete.nomImprimante, "") == 0) {
-		return 0;
-	} else {
-		return 1;
-	}
-}
-
-int creerRequeteAnnulationImpression(Requete requete){
-	TypeRequete type;
-	char nomImprimante[255];
-	
-	printf("\n\n%s---------- Annulation d'une impression ----------\n%s", GRN, RESET);
-    type = ANNULATION_IMPRESSION;
-    requete.type = type;
-    requete.fichier = NULL;
-    printf("Veuillez entrer le nom de l'imprimante : ");
-	scanf("%s", nomImprimante);
-	requete.nomImprimante = nomImprimante;
-	
-	//TODO Completer la requete avec les informations de l'impression
-	
-	if(strcmp(requete.nomImprimante, "") == 0) {
-		return 0;
-	} else {
-		return 1;
-	}
-}
-
-int creerRequeteEtatImprimante(Requete requete){
-	TypeRequete type;
-	char nomImprimante[255];
-
-	printf("\n\n%s---------- Etat d'une imprimante ----------\n%s", GRN, RESET);
-    type = ETAT_IMPRIMANTE;
-    requete.type = type;
-    printf("Veuillez entrer le nom de l'imprimante : ");
-	scanf("%s", nomImprimante);
-	requete.nomImprimante = nomImprimante;
-	
-	if(strcmp(requete.nomImprimante, "") == 0) {
-		return 0;
-	} else {
-		return 1;
-	}
 }
 
 int envoyerRequete(Requete requete, int numCommunication){
@@ -210,18 +90,111 @@ int main(int argc, char** argv) {
         requete.emetteur = getpid();
         requete.idRequete = etablirIdRequete(requete.emetteur, nbRequetes);
         int res;
+		TypeRequete type;
+		char nomImprimante[255];
         switch (choixInterface) {
 		    case 1 :
-		    	res = creerRequeteImpression(requete);
+				printf("\n\n%s---------- Impression d'un fichier ----------\n%s", GRN, RESET);
+				type = IMPRESSION;
+				requete.type = type;
+				FILE* fichier = NULL;
+				char cheminFichier[255];
+				long tailleFichier = 0;
+				char* typeFichier = "";
+				int caractereActuel = 0;
+				char* contenu = "";
+				printf("Veuillez entrer le chemin vers le fichier a imprimer : ");
+				scanf("%s", cheminFichier);
+				fichier = fopen(cheminFichier, "r");
+				if (fichier != NULL) {
+					tailleFichier = recupererTailleFichier(cheminFichier);
+					typeFichier = recupererTypeFichier(cheminFichier);
+					contenu = malloc(sizeof(char) * tailleFichier);
+					for (int i = 0; i < tailleFichier - 1; i++){
+						caractereActuel = fgetc(fichier);
+						contenu[i] = caractereActuel;
+					}
+		
+					fclose(fichier);
+		
+					requete.nomFichier = malloc(sizeof(char) * sizeof(cheminFichier));
+					strcpy(requete.nomFichier, cheminFichier);
+		
+					requete.fichier = malloc(sizeof(char) * tailleFichier);
+					requete.fichier = contenu;
+					requete.tailleFichier = tailleFichier;
+					requete.typeFichier = typeFichier;
+	
+					//TODO amelioration : demander au serveur les imprimantes disponibles
+	
+					printf("Veuillez entrer le nom de l'imprimante : ");
+					scanf("%s", nomImprimante);
+					requete.nomImprimante = nomImprimante;
+					int nbCopies = 0;
+					while (nbCopies <= 0) {
+						printf("Veuillez entrer le nombre de copies (> 0) : ");
+						scanf("%d", &nbCopies);
+					}
+					requete.nbCopies = nbCopies;
+					int rectoVerso = -1;
+					while (rectoVerso != 0 && rectoVerso != 1) {
+						printf("Veuillez entrer le type d'impression (0 = Recto, 1 = Recto/Verso) : ");
+						scanf("%d", &rectoVerso);
+					}
+					requete.rectoVerso = rectoVerso;
+					res = 1;
+				} else {
+					printf("%s/!\\ Le chemin de fichier specifie ne pointe aucun fichier. /!\\%s", RED, RESET);
+					res = 0;
+				}
 		        break;
 		    case 2:
-		        res = creerRequeteEtatImpression(requete);
+				printf("\n\n%s---------- Etat d'avancement d'une impression ----------\n%s", GRN, RESET);
+				type = ETAT_IMPRESSION;
+				requete.type = type;
+				requete.fichier = NULL;
+				printf("Veuillez entrer le nom de l'imprimante : ");
+				scanf("%s", nomImprimante);
+				requete.nomImprimante = nomImprimante;
+	
+				//TODO Completer la requete avec les informations de l'impression
+	
+				if(strcmp(requete.nomImprimante, "") == 0) {
+					res = 0;
+				} else {
+					res = 1;
+				}
 		        break;
 		    case 3:
-		   	 	res = creerRequeteAnnulationImpression(requete);
+				printf("\n\n%s---------- Annulation d'une impression ----------\n%s", GRN, RESET);
+				type = ANNULATION_IMPRESSION;
+				requete.type = type;
+				requete.fichier = NULL;
+				printf("Veuillez entrer le nom de l'imprimante : ");
+				scanf("%s", nomImprimante);
+				requete.nomImprimante = nomImprimante;
+	
+				//TODO Completer la requete avec les informations de l'impression
+	
+				if(strcmp(requete.nomImprimante, "") == 0) {
+					res = 0;
+				} else {
+					res = 1;
+				}
 		        break;
 		    case 4:
-		    	res = creerRequeteEtatImprimante(requete);
+				printf("\n\n%s---------- Etat d'une imprimante ----------\n%s", GRN, RESET);
+				type = ETAT_IMPRIMANTE;
+				requete.type = type;
+				printf("Veuillez entrer le nom de l'imprimante : ");
+				scanf("%s", nomImprimante);
+				requete.nomImprimante = nomImprimante;
+	
+				if(strcmp(requete.nomImprimante, "") == 0) {
+					res = 0;
+				} else {
+					res = 1;
+				}
 		        break;
 		   	default:
 		   		printf("\n%s/!\\ Le choix effectue n'est pas attribue pour le moment. /!\\%s", RED, RESET);

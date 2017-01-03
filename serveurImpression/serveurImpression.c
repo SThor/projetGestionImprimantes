@@ -150,7 +150,7 @@ void* cupsBackend(void* args) {
 		int idImprimante;
 		idImprimante = chercherIdImprimante(requete.nomImprimante);
 		if (idImprimante != -1) {
-			printf("\tCUPS Backend numero %d : Envoi de la requete %d a l'imprimante %d\n", numeroBackend, requete.idRequete, idImprimante);
+			printf("\tCUPS Backend n°%d : Envoi de la requete %d a l'imprimante %d\n", numeroBackend, requete.idRequete, idImprimante);
 			Imprimante* imprimante = chercherImprimante(requete.nomImprimante);
 			if (&imprimante[0].typeImprimante == 0) {
 				deposer(&moniteurImprimanteLocale[idImprimante], requete);
@@ -197,7 +197,8 @@ void* cupsFilter(void* args) {
 	int numeroFiltre = *(int*) args;
 	while(1) {
 		retirer(&moniteurFilter, &requete);
-		printf("\tCUPS Filter numero %d : Filtrage de la requete %d\n", numeroFiltre, requete.idRequete);
+		printf("\tCUPS Filter n°%d : Filtrage de la requete %d\n", numeroFiltre, requete.idRequete);
+		printf("TEST");
 		numeroRequete = chercherIdImprimante(requete.nomImprimante);
 		if (numeroRequete != 1) {
 			filtrerRequete(requete);
@@ -271,7 +272,7 @@ void traiterEtatImprimante(Requete requete, int numCommunication) {
 void traiterRequete(Requete requete, int numCommunication) {
 	printf("Test\n");
 	printf("%d\n", requete.emetteur);
-	printf("%d\n", requete.idRequete);
+	printf("%d\n", requete.type);
 	if (authentifierUtilisateur(requete.emetteur) != 0) {
 		switch (requete.type) {
 			case IMPRESSION:

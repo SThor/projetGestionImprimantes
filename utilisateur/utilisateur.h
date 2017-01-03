@@ -23,18 +23,6 @@ char* recupererTypeFichier(const char* cheminFichier);
 /* Impression d'une requete */
 void imprimerRequete(Requete requete);
 
-/* Creation d'une requete d'impression */
-int creerRequeteImpression(Requete requete);
-
-/* Creation d'une requete d'etat impression */
-int creerRequeteEtatImpression(Requete requete);
-
-/* Creation d'une requete d'annulation d'impression */
-int creerRequeteAnnulationImpression(Requete requete);
-
-/* Creation d'une requete d'etat imprimante */
-int creerRequeteEtatImprimante(Requete requete);
-
 /* Envoi d'une requete */
 int envoyerRequete(Requete requete, int numCommunication);
 
