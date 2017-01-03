@@ -7,16 +7,19 @@
  
 #include "serveurImpression.h"
 
-#define CHEMIN_CONFIGURATION "configuration"
-
 Imprimante * imprimantes = NULL;
 char nomServeur[50];
 int nbImprimantes;
+int nbFiltres;
 
-Moniteur moniteurScheduler;
 Moniteur moniteurFilter;
 Moniteur moniteurBackend;
-Moniteur moniteurImpressions;
+Moniteur* moniteurImprimanteLocale;
+
+pthread_t * thd_Scheduler;
+pthread_t * thd_Filter;
+pthread_t * thd_Backend;
+pthread_t * thd_Imprimantes;
 
 /* Initialisation de la configuration du systeme */
 void initialiserConfiguration() {
@@ -33,7 +36,6 @@ void initialiserConfiguration() {
 		while (fgets(ligne, sizeof ligne, fichier) != NULL) {
 			Imprimante imprimante;
 			char nomImprimante[50];
-			int typeImprimante;
 			switch (ligne[0]) {
 				case 's' : //Serveur
 					sscanf(&ligne[2], "%s", nomServeur);
@@ -41,7 +43,7 @@ void initialiserConfiguration() {
 				case 'l' : //Imprimante locale
 					sscanf(&ligne[2], "%s", nomImprimante);
 					i = 1;
-					while (chercherImprimante(nomImprimante) != NULL) {
+					while (chercherIdImprimante(nomImprimante) != -1) {
 						sprintf(nomImprimante, "%s_%d", nomImprimante, i++);
 					}
 					strcpy(imprimante.nomImprimante, nomImprimante);
@@ -55,7 +57,7 @@ void initialiserConfiguration() {
 				case 'd' : //Imprimante distante
 					sscanf(&ligne[2], "%s", nomImprimante);
 					i = 1;
-					while (chercherImprimante(nomImprimante) != NULL) {
+					while (chercherIdImprimante(nomImprimante) != -1) {
 						sprintf(nomImprimante, "%s_%d", nomImprimante, i++);
 					}
 					strcpy(imprimante.nomImprimante, nomImprimante);
@@ -82,89 +84,226 @@ int initialiserServeurImpression(char* nom) {
 	int numServeur;
 	unlink(nom);
 	if ((numServeur = initialiserServeur(nom)) < 0) {
-		fprintf(stderr, "%s/!\\ Erreur d'initialisation du serveur d'impression %s. /!\\%s\n", RED, nom, RESET);
+		fprintf(stderr, "%s/!\\ Erreur d'initialisation du serveur d'impression %s : %s /!\\%s\n", RED, nom, messageErreur(numServeur), RESET);
 		exit(1);
 	}
 	printf("\tLe %s (Numéro : %d) est opérationnel\n", nom, numServeur);
 	return numServeur;
 }
 
-/* Creation d'une imprimante */
-void ajouterImprimante(Imprimante imprimante) {
-	char* cheminImprimante = (char*) malloc(sizeof(char)*3 + sizeof(imprimante.nomImprimante));
-	sprintf(cheminImprimante, "imprimantes/%s", imprimante.nomImprimante);
-	
-	FILE* fichier = NULL;
-	fichier = fopen(cheminImprimante, "w");
-	if (fichier != NULL) {
-		fputs("", fichier);
-		fclose(fichier);
-	}
-	
-	if (imprimante.typeImprimante == 0) {
-		printf("\tL'imprimante locale %s a ete creee\n", imprimante.nomImprimante);
-	} else {
-		printf("\tL'imprimante distante %s a ete creee\n", imprimante.nomImprimante);
-	}
-}
-
 /* Recherche d'une imprimante */
 Imprimante* chercherImprimante(char* nom) {
 	for (int i = 0; i < nbImprimantes; i++) {
-		if (strcmp(nom, imprimantes[i].nomImprimante) == 0) {
+		if ((strcmp(nom, imprimantes[i].nomImprimante) == 0)) {
 			return &imprimantes[i];
 		}
 	}
 	return NULL;
 }
 
-/* Demarrage des imprimantes locales et distantes */
-void* demarrerImprimantesLocales(void* args) {
-	
+/* Recherche du numéro d'une imprimante */
+int chercherIdImprimante(char* nom) {
+	for (int i = 0; i < nbImprimantes; i++) {
+		if (strcmp(nom, imprimantes[i].nomImprimante) == 0) {
+			if (i < nbImprimantes) {
+				return i;
+			}
+		}
+	}
+	return -1;
 }
 
-/* Demarrage des imprimantes distantes via le backend */
-void* demarrerCUPSBackend(void* args) {
+/* imprimante locale */
+void* imprimanteLocale(void* args) {
+	Requete requete;
+	int numeroImprimante = *(int*) args;
+	char* cheminImprimante = (char*) malloc(sizeof(char)*28 + sizeof(int));
+	int numeroIncremente = numeroImprimante+1;
+	sprintf(cheminImprimante, "imprimantes/imprimante%d", numeroIncremente);
 	
+	FILE* fichier = NULL;
+	fichier = fopen(cheminImprimante, "w");
+	
+	while(1) {
+		retirer(&moniteurImprimanteLocale[numeroImprimante], &requete);
+		int idImprimante;
+		idImprimante = chercherIdImprimante(requete.nomImprimante);
+		if (idImprimante != -1) {
+			printf("\tImprimante locale %s : Impression de la requete %d\n", requete.nomImprimante, requete.idRequete);
+			
+			if (fichier != NULL) {
+				fprintf(fichier, "%s", requete.fichier);
+				fclose(fichier);
+			}
+		}
+	}
+	pthread_exit(NULL);
 }
 
-/* Demarrage des filtres */
-void* demarrerCUPSFilter(void* args) {
-	
+/* backend */
+void* cupsBackend(void* args) {
+	Requete requete;
+	int numeroBackend = *(int*) args;
+	int numCommunication;
+	while(1) {
+		retirer(&moniteurBackend, &requete);
+		int idImprimante;
+		idImprimante = chercherIdImprimante(requete.nomImprimante);
+		if (idImprimante != -1) {
+			printf("\tCUPS Backend numero %d : Envoi de la requete %d a l'imprimante %d\n", numeroBackend, requete.idRequete, idImprimante);
+			Imprimante* imprimante = chercherImprimante(requete.nomImprimante);
+			if (&imprimante[0].typeImprimante == 0) {
+				deposer(&moniteurImprimanteLocale[idImprimante], requete);
+			} else {
+				while (1) {
+					if ((numCommunication = demanderCommunication(requete.nomImprimante)) < 0) {
+						fprintf(stderr, "%sCUPS Scheduler : /!\\ Erreur de demande de communication avec imprimante %s : %s /!\\%s\n", RED, requete.nomImprimante, messageErreur((RetourCommunication)numCommunication), RESET);
+						deposer(&moniteurBackend, requete);
+					}
+					if (envoyerOctets(numCommunication, &requete, sizeof(Requete)) != sizeof(Requete)) {
+						fprintf(stderr, "%sCUPS Scheduler : /!\\ Erreur d'envoi de la requete n°%d : %s /!\\%s\n", RED, requete.idRequete, messageErreur((RetourCommunication)numCommunication), RESET);
+						deposer(&moniteurBackend, requete);
+					}
+	 				cloreCommunication(numCommunication);
+	 			}
+			}
+		}
+	}
+	pthread_exit(NULL);
 }
 
-/* Demarrage du scheduler */
-void* demarrerCUPSScheduler(void* args) {
+/* Application du filtre sur la requete */
+void filtrerRequete(Requete requete) {	
+	char* fichier;
+	if (strcmp(requete.typeFichier, "txt") == 0) {
+		fichier = (char*) malloc(sizeof(char)*28 + sizeof(requete.fichier)); 
+		sprintf(fichier, "EN-TETE POUR FICHIER TXT\n%s", requete.fichier);
+		memcpy(requete.fichier, fichier, requete.tailleFichier + sizeof(char)*28);
+	} else if (strcmp(requete.typeFichier, "png") == 0) {
+		fichier = (char*) malloc(sizeof(char)*28 + sizeof(requete.fichier)); 
+		sprintf(fichier, "EN-TETE POUR FICHIER PNG\n%s", requete.fichier);
+		memcpy(requete.fichier, fichier, requete.tailleFichier + sizeof(char)*28);
+	} else if (strcmp(requete.typeFichier, "pdf") == 0) {
+		fichier = (char*) malloc(sizeof(char)*28 + sizeof(requete.fichier)); 
+		sprintf(fichier, "EN-TETE POUR FICHIER PDF\n%s", requete.fichier);
+		memcpy(requete.fichier, fichier, requete.tailleFichier + sizeof(char)*28);
+	}
+}
+
+/* filter */
+void* cupsFilter(void* args) {
+	Requete requete;
+	int numeroRequete;
+	int numeroFiltre = *(int*) args;
+	while(1) {
+		retirer(&moniteurFilter, &requete);
+		printf("\tCUPS Filter numero %d : Filtrage de la requete %d\n", numeroFiltre, requete.idRequete);
+		numeroRequete = chercherIdImprimante(requete.nomImprimante);
+		if (numeroRequete != 1) {
+			filtrerRequete(requete);
+			deposer(&moniteurBackend, requete);
+		}
+	}
+	pthread_exit(NULL);
+}
+
+/* Authentification de l'utilisateur */
+int authentifierUtilisateur(pid_t nomUtilisateur) {
+	int i = 1; //Toujours authentifie
+	if (i == 1) {
+		// Cas authentifie
+		return i;
+	} else {
+		// Cas non authentifie
+		return i;
+	}
+}
+
+/* Traitement des requetes d'impression */
+void traiterImpression(Requete requete) {
+	deposer(&moniteurFilter, requete);
+}
+
+/* Traitement des requetes d'etat d'impression */
+void traiterEtatImpression(Requete requete, int numCommunication) {
+	//TODO Traitement en cas de requete d'etat d'impression
+}
+
+/* Traitement des requetes d'annulation d'impression */
+void traiterAnnulationImpression(Requete requete, int numCommunication) {
+	//TODO Traitement en cas de requete d'annulation d'impression
+	//Passer directement via moniteurBackend
+}
+
+/* Traitement des requetes d'etat d'imprimante */
+void traiterEtatImprimante(Requete requete, int numCommunication) {
+	//TODO Traitement en cas de requete d'etat d'imprimante
+	Imprimante* imprimante;
+	int numeroImprimante;
+	int nbImpressions;
+	int nbImpressionsMax;
+	imprimante = chercherImprimante(requete.nomImprimante);
+	numeroImprimante = chercherIdImprimante(requete.nomImprimante);
+	if (&imprimante[0].typeImprimante == 0) {
+		// Cas ou l'imprimante est locale
+		nbImpressions = getNbCasesRemplies(&moniteurImprimanteLocale[numeroImprimante]);
+		nbImpressionsMax = getNbCases(&moniteurImprimanteLocale[numeroImprimante]);
+	} else {
+		// Cas ou l'imprimante est distante
+		deposer(&moniteurBackend, requete);
+	}
+	
+	EtatImprimante ei;
+	if (nbImpressions == 0) {
+		ei = VIDE;
+	} else {
+		if (nbImpressions < nbImpressionsMax) {
+			ei = IMPRESSIONS_EN_COURS;
+		} else {
+			ei = PLEINE;
+		}
+	}
+	
+	envoyerOctets(numCommunication, &ei, sizeof(EtatImprimante));
+}
+
+/* Traitement de la requete */
+void traiterRequete(Requete requete, int numCommunication) {
+	printf("Test\n");
+	printf("%d\n", requete.emetteur);
+	printf("%d\n", requete.idRequete);
+	if (authentifierUtilisateur(requete.emetteur) != 0) {
+		switch (requete.type) {
+			case IMPRESSION:
+				traiterImpression(requete);
+				break;
+			case ETAT_IMPRESSION:
+				traiterEtatImpression(requete, numCommunication);
+				break;
+			case ANNULATION_IMPRESSION:
+				traiterAnnulationImpression(requete, numCommunication);
+				break;
+			case ETAT_IMPRIMANTE:
+				traiterEtatImprimante(requete, numCommunication);
+				break;
+		}
+	}
+}
+
+/* scheduler */
+void* cupsScheduler(void* args) {
 	int numServeur;
 	Serveur * serveur = (Serveur*) args;
 	numServeur = serveur->numServeur;
 	int numCommunication;
 	Requete requete;
-	while(1) {
-		if((numCommunication = accepterCommunication(numServeur)) < 0) {
-			fprintf(stderr, "%sCUPS Scheduler : /!\\ Erreur d'acceptation de la communication. /!\\%s\n", RED, RESET);
-			exit(1);
-		}
+	while((numCommunication = accepterCommunication(numServeur)) >= 0) {
 		recevoirOctets(numCommunication, &requete, sizeof(Requete));
-   		printf("\tCUPS Scheduler : Une nouvelle demande a ete recue (Emetteur : %d | ID demande : %d)\n", requete.emetteur, requete.idDemande);
-   		//traiterRequete(requete, numCommunication);
+   		printf("\tCUPS Scheduler : Une nouvelle requete a ete recue (Emetteur : %d | ID requete : %d)\n", requete.emetteur, requete.idRequete);
+   		traiterRequete(requete, numCommunication);
    		cloreCommunication(numCommunication);
 	}
-}
-
-/* Traiter une demande d'impression */
-void imprimer(Imprimante imprimante, Requete requete) {
-	
-}
-
-/* Arret d'une demande d'impression */
-void arreterImpression(Imprimante imprimante) {
-	
-}
- 
-/* Tache Gestion Imprimante */
-void gestionImprimante() {
-	
+	pthread_exit(NULL);
 }
 
 int main(int argc, char** argv) {
@@ -173,60 +312,68 @@ int main(int argc, char** argv) {
 	
 	printf("\nInitialisation de la configuration\n");
 	initialiserConfiguration();
-	sleep(1);
 	
 	printf("\nInitialisation du serveur d'impression\n");
 	numServeur = initialiserServeurImpression(nomServeur);
 	strcpy(serveur.nomServeur, nomServeur);
 	serveur.numServeur = numServeur;
-	sleep(1);
 	
 	printf("\nInitialisation des moniteurs de file d'attentes\n");
-	moniteurScheduler = creerMoniteur();
 	moniteurFilter = creerMoniteur();
 	moniteurBackend = creerMoniteur();
-	moniteurImpressions = creerMoniteur();
-	sleep(1);
+	int nbImprimantesLocales = 0;
+	for (int i = 0; i < nbImprimantes; i++){
+		if (imprimantes[i].typeImprimante == 0) {
+			nbImprimantesLocales++;
+		}
+	}
+	moniteurImprimanteLocale = (Moniteur*) malloc(sizeof(Moniteur) * nbImprimantesLocales);
+	for (int i = 0; i < nbImprimantes; i++){
+		if (imprimantes[i].typeImprimante == 0) {
+			moniteurImprimanteLocale[i] = creerMoniteur();
+		}
+	}
 	
 	printf("\nInitialisation des threads\n");
-	pthread_t * thd_Scheduler = (pthread_t *) malloc(FILE_SCHEDULER_MAX * sizeof(pthread_t));
-	pthread_t * thd_Filter = (pthread_t *) malloc(FILE_FILTER_MAX * sizeof(pthread_t));
-	pthread_t * thd_Backend = (pthread_t *) malloc(FILE_BACKEND_MAX * sizeof(pthread_t));
-	pthread_t * thd_Imprimantes = (pthread_t *) malloc(NB_IMPRIMANTES_MAX * sizeof(pthread_t));
-	sleep(1);
+	thd_Scheduler = (pthread_t *) malloc(sizeof(pthread_t));
+	thd_Filter = (pthread_t *) malloc(NB_FILTERS_MAX * sizeof(pthread_t));
+	thd_Backend = (pthread_t *) malloc(NB_BACKENDS_MAX * sizeof(pthread_t));
+	thd_Imprimantes = (pthread_t *) malloc(NB_IMPRIMANTES_MAX * sizeof(pthread_t));
 	
 	int etatActuel;
 	
+	//Demarrages
 	printf("\tDemarrage du CUPS Scheduler\n");
-	if ((etatActuel = pthread_create(thd_Scheduler, NULL, demarrerCUPSScheduler, &serveur)) != 0) {
+	if ((etatActuel = pthread_create(thd_Scheduler, NULL, cupsScheduler, &serveur)) != 0) {
 		fprintf(stderr, "%s/!\\ Erreur d'execution du CUPS Scheduler. /!\\%s\n", RED, RESET);
 		exit(1);
 	}
 	printf("\tCUPS Scheduler en marche\n");
-	sleep(1);
 	
 	printf("\tDemarrage des CUPS Filters\n");
-	for(int i = 0; i < NB_FILTRES_MAX; i++){
-		if ((etatActuel = pthread_create(&thd_Filter[i], NULL, demarrerCUPSFilter, NULL)) != 0) {
+	int* idFiltres;
+	idFiltres = malloc(sizeof(int) * NB_FILTERS_MAX);
+	for (int i = 0; i < NB_FILTERS_MAX; i++){
+		idFiltres[i] = i;
+		if ((etatActuel = pthread_create(&thd_Filter[i], NULL, cupsFilter, &idFiltres[i])) != 0) {
 			fprintf(stderr, "%s/!\\ Erreur d'execution des CUPS Filters. /!\\%s\n", RED, RESET);
 			exit(1);
 		}
 	}
 	printf("\tCUPS Filters en marche\n");
-	sleep(1);
 	
 	printf("\tDemarrage des CUPS Backends et des imprimantes locales\n");
 	int* idImprimantes;
 	idImprimantes = malloc(sizeof(int) * nbImprimantes);
-	for(int i = 0; i < nbImprimantes; i++){
+	for (int i = 0; i < nbImprimantes; i++){
 		idImprimantes[i] = i;
 		if (imprimantes[i].typeImprimante == 1) {
-			if ((etatActuel = pthread_create(&thd_Backend[i], NULL, demarrerCUPSBackend, &idImprimantes[i])) != 0) {
+			if ((etatActuel = pthread_create(&thd_Backend[i], NULL, cupsBackend, &idImprimantes[i])) != 0) {
 				fprintf(stderr, "%s/!\\ Erreur d'execution des CUPS Backend. /!\\%s\n", RED, RESET);
 				exit(1);
 			}
 		} else if (imprimantes[i].typeImprimante == 0) {
-			if ((etatActuel = pthread_create(&thd_Imprimantes[i], NULL, demarrerImprimantesLocales, &idImprimantes[i])) != 0) {
+			if ((etatActuel = pthread_create(&thd_Imprimantes[i], NULL, imprimanteLocale, &idImprimantes[i])) != 0) {
 				fprintf(stderr, "%s/!\\ Erreur d'execution des imprimantes locales. /!\\%s\n", RED, RESET);
 				exit(1);
 			}
@@ -235,6 +382,41 @@ int main(int argc, char** argv) {
 	printf("\tCUPS Backends et imprimantes locales en marche\n");
 	
 	while(1) {
-		sleep(1);
+	
 	}
+	
+	printf("\tArret du CUPS Scheduler\n");
+	if ((etatActuel = pthread_join(*thd_Scheduler, NULL)) != 0) {
+		fprintf(stderr, "%s/!\\ Erreur d'extinction du CUPS Scheduler. /!\\%s\n", RED, RESET);
+		exit(1);
+	}
+	printf("\tCUPS Scheduler correctement arrete\n");
+	
+	printf("\tArret des CUPS Filters\n");
+	for (int i = 0; i < NB_FILTERS_MAX; i++){
+		if ((etatActuel = pthread_join(thd_Filter[i], NULL)) != 0) {
+			fprintf(stderr, "%s/!\\ Erreur d'extinction des CUPS Filters. /!\\%s\n", RED, RESET);
+			exit(1);
+		}
+	}
+	printf("\tCUPS Filters correctement arrete\n");
+	
+	printf("\tArret des CUPS Backends et des imprimantes locales\n");
+	for (int i = 0; i < nbImprimantes; i++){
+		if (imprimantes[i].typeImprimante == 1) {
+			if ((etatActuel = pthread_join(thd_Backend[i], NULL)) != 0) {
+				fprintf(stderr, "%s/!\\ Erreur d'extinction des CUPS Backend. /!\\%s\n", RED, RESET);
+				exit(1);
+			}
+		} else if (imprimantes[i].typeImprimante == 0) {
+			if ((etatActuel = pthread_join(thd_Imprimantes[i], NULL)) != 0) {
+				fprintf(stderr, "%s/!\\ Erreur d'extinction des imprimantes locales. /!\\%s\n", RED, RESET);
+				exit(1);
+			}
+		}
+	}
+	printf("\tCUPS Backends et imprimantes locales correctement arrete\n");
+	printf("\tArret general\n");
+	arreterServeur(numServeur);
+	exit(EXIT_SUCCESS);
 }

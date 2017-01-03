@@ -6,13 +6,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include "../utils.h"
 
 #define NB_CASES_MAX 15
-
-typedef struct{
-	void * buffer;
-	int size;
-} Message;
 	
 typedef struct {
 	int nbCases;
@@ -23,7 +19,7 @@ typedef struct {
 	pthread_cond_t condCasesPleines;
 	pthread_mutex_t mutex;
 	
-	Message message[NB_CASES_MAX];
+	Requete requete[NB_CASES_MAX];
 } Moniteur;
 
 /* Creation d'un moniteur suivant le modele producteurs/consommateurs */
@@ -42,10 +38,13 @@ int debutRetirer(Moniteur *moniteur);
 void finRetirer(Moniteur *moniteur);
 
 /* Depot synchronise */
-void deposer(Moniteur *moniteur, void *buffer, int size);
+void deposer(Moniteur *moniteur, Requete requete);
 
-/* Retrait synchronise qui retourne la taille du pointeur du buffer de retrait */
-int retirer(Moniteur *moniteur, void **buffer);
+/* Retrait synchronise qui retourne la taille du pointeur de la requete a retirer */
+int retirer(Moniteur *moniteur, Requete* requete);
+
+/* Retourne le nombre de cases */
+int getNbCases(Moniteur *moniteur);
 
 /* Retourne le nombre de cases remplies */
 int getNbCasesRemplies(Moniteur *moniteur);

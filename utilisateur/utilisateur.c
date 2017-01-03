@@ -6,9 +6,8 @@
  */
  
 #include "utilisateur.h"
-#include "../communication/communication.h"
 
-#define NOM_SERVEUR "serveurImpression1"
+int nbRequetes;
  
 long recupererTailleFichier(const char* cheminFichier) { 
    struct stat s; 
@@ -27,11 +26,11 @@ char* recupererTypeFichier(const char* cheminFichier) {
     return point + 1;
 }
 
-void printRequete(Requete * requete){
-	printf("Emetteur : %d\n", requete->emetteur);
-	printf("idDemande : %d\n", requete->idDemande);
+void imprimerRequete(Requete requete){
+	printf("Emetteur : %d\n", requete.emetteur);
+	printf("idRequete : %d\n", requete.idRequete);
 	char typeRequete[100];
-	switch (requete->type){
+	switch (requete.type){
 		case IMPRESSION:
 			strcpy(typeRequete, "Impression");
 			break;
@@ -49,17 +48,17 @@ void printRequete(Requete * requete){
 			break;
 	}
 	printf("Type de requete : %s\n", typeRequete);
-	printf("Imprimante : %s\n", requete->nomImprimante);
-	printf("Fichier : %s\n", requete->nomFichier);
+	printf("Imprimante : %s\n", requete.nomImprimante);
+	printf("Fichier : %s\n", requete.nomFichier);
 }
 
-void creerRequeteImpression(Requete * requete){
+int creerRequeteImpression(Requete requete) {
 	TypeRequete type;
 	char nomImprimante[255];
 
     printf("\n\n%s---------- Impression d'un fichier ----------\n%s", GRN, RESET);
     type = IMPRESSION;
-    requete->type = type;
+    requete.type = type;
 	FILE* fichier = NULL;
     char cheminFichier[255];
 	long tailleFichier = 0;
@@ -80,78 +79,128 @@ void creerRequeteImpression(Requete * requete){
 		
 		fclose(fichier);
 		
-		requete->fichier = malloc(sizeof(char) * tailleFichier);
-		requete->fichier = contenu;
-		requete->tailleFichier = tailleFichier;
-		requete->typeFichier = typeFichier;
+		requete.nomFichier = malloc(sizeof(char) * sizeof(cheminFichier));
+		strcpy(requete.nomFichier, cheminFichier);
+		
+		requete.fichier = malloc(sizeof(char) * tailleFichier);
+		requete.fichier = contenu;
+		requete.tailleFichier = tailleFichier;
+		requete.typeFichier = typeFichier;
 	
-		//TODO demander au serveur les imprimantes disponibles
+		//TODO amelioration : demander au serveur les imprimantes disponibles
 	
-		printf("Veuillez entrer le nom de l'imprimante sur laquelle imprimer le fichier : ");
+		printf("Veuillez entrer le nom de l'imprimante : ");
 		scanf("%s", nomImprimante);
-		requete->nomImprimante = nomImprimante;
+		requete.nomImprimante = nomImprimante;
 		int nbCopies = 0;
 		while (nbCopies <= 0) {
-			printf("Veuillez entrer le nombre de copies souhaitee (> 0) : ");
+			printf("Veuillez entrer le nombre de copies (> 0) : ");
 			scanf("%d", &nbCopies);
 		}
-		requete->options.nbCopies = nbCopies;
+		requete.nbCopies = nbCopies;
 		int rectoVerso = -1;
 		while (rectoVerso != 0 && rectoVerso != 1) {
-			printf("Veuillez entrer le type d'impression souhaitee (0 = Recto, 1 = Recto/Verso) : ");
+			printf("Veuillez entrer le type d'impression (0 = Recto, 1 = Recto/Verso) : ");
 			scanf("%d", &rectoVerso);
 		}
-		requete->options.rectoVerso = rectoVerso;
+		requete.rectoVerso = rectoVerso;
+		return 1;
 	} else {
 		printf("%s/!\\ Le chemin de fichier specifie ne pointe aucun fichier. /!\\%s", RED, RESET);
-		sleep(1);
+		return 0;
 	}
 }
 
-void creerRequeteEtatImprimante(Requete * requete){
+int creerRequeteEtatImpression(Requete requete){
+	TypeRequete type;
+	char nomImprimante[255];
+	
+	printf("\n\n%s---------- Etat d'avancement d'une impression ----------\n%s", GRN, RESET);
+    type = ETAT_IMPRESSION;
+    requete.type = type;
+    requete.fichier = NULL;
+    printf("Veuillez entrer le nom de l'imprimante : ");
+	scanf("%s", nomImprimante);
+	requete.nomImprimante = nomImprimante;
+	
+	//TODO Completer la requete avec les informations de l'impression
+	
+	if(strcmp(requete.nomImprimante, "") == 0) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+int creerRequeteAnnulationImpression(Requete requete){
+	TypeRequete type;
+	char nomImprimante[255];
+	
+	printf("\n\n%s---------- Annulation d'une impression ----------\n%s", GRN, RESET);
+    type = ANNULATION_IMPRESSION;
+    requete.type = type;
+    requete.fichier = NULL;
+    printf("Veuillez entrer le nom de l'imprimante : ");
+	scanf("%s", nomImprimante);
+	requete.nomImprimante = nomImprimante;
+	
+	//TODO Completer la requete avec les informations de l'impression
+	
+	if(strcmp(requete.nomImprimante, "") == 0) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+int creerRequeteEtatImprimante(Requete requete){
 	TypeRequete type;
 	char nomImprimante[255];
 
 	printf("\n\n%s---------- Etat d'une imprimante ----------\n%s", GRN, RESET);
     type = ETAT_IMPRIMANTE;
-    requete->type = type;
-    printf("Veuillez entrer le nom de l'imprimante dont vous voulez l'etat : ");
+    requete.type = type;
+    printf("Veuillez entrer le nom de l'imprimante : ");
 	scanf("%s", nomImprimante);
-	requete->nomImprimante = nomImprimante;
+	requete.nomImprimante = nomImprimante;
+	
+	if(strcmp(requete.nomImprimante, "") == 0) {
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
-int envoyerRequete(Requete * requete){
-	printRequete(requete);
+int envoyerRequete(Requete requete, int numCommunication){
+	imprimerRequete(requete);
+    int lgRequete;
+    
+	printf("\n\n%s---------- Envoi de la requete ----------\n%s", GRN, RESET);
+	
+	// envoyer la requête
+	lgRequete = sizeof(Requete);
+	if (envoyerOctets(numCommunication, &requete, lgRequete) != lgRequete) {
+		fprintf(stderr, "Client : %s/!\\ Erreur d'envoi de la requete %d : %s /!\\%s\n", RED, requete.idRequete, messageErreur((RetourCommunication)numCommunication), RESET);
+		return 2;
+	}
+	
+	return 0;
+}
 
-	if (requete->type == IMPRESSION || requete->type == ETAT_IMPRESSION || requete->type == ANNULATION_IMPRESSION || requete->type == ETAT_IMPRIMANTE) {
-        	int numCommunication;
-        	int lgRequete;
-
-		   	printf("\n\n%s---------- Envoi de la requete ----------\n%s", GRN, RESET);
-
-        	// se connecter au serveur
-			if ((numCommunication = demanderCommunication(NOM_SERVEUR)) < 0)
-				{
-				fprintf(stderr, "Client: erreur connexion %s\n", messageErreur((RetourCommunication)numCommunication));
-				return 1;
-				}
-
-			// envoyer la requête
-			lgRequete = sizeof(Requete);
-		    if (envoyerOctets(numCommunication, requete, lgRequete) != lgRequete)
-				{
-				fprintf(stderr, "Client: erreur envoi de la requête %s\n", requete->type);
-				return 2;
-				}
-		}
+int etablirIdRequete(pid_t emetteur, int nbRequetes) {
+ 	int puissance = 10;
+    while (nbRequetes >= puissance) {
+    	puissance *= 10;
+    }
+    int resultat = emetteur * puissance + nbRequetes;
+    return resultat;
 }
 
 int main(int argc, char** argv) {
 	Requete requete;
-	TypeRequete type;
-    int choixInterface;
-	char nomImprimante[255];
+	nbRequetes = 0;
     while (1) {
+    	int choixInterface;
     	printf("\n%s__________________________________________________________________\n", YEL);
         printf("\n---------- Service d'impression et taches utilisatrices ---------- \n");
         printf("__________________________________________________________________%s\n\n", RESET);
@@ -159,51 +208,66 @@ int main(int argc, char** argv) {
         printf("\nVotre choix : ");
         scanf("%d", &choixInterface);
         requete.emetteur = getpid();
+        requete.idRequete = etablirIdRequete(requete.emetteur, nbRequetes);
+        int res;
         switch (choixInterface) {
 		    case 1 :
-		    	creerRequeteImpression(&requete);
+		    	res = creerRequeteImpression(requete);
 		        break;
 		    case 2:
-		        printf("\n\n%s---------- Etat d'avancement d'une impression ----------\n%s", GRN, RESET);
-		        type = ETAT_IMPRESSION;
-		        requete.type = type;
-		        requete.fichier = NULL;
-		        printf("Veuillez entrer le nom de l'imprimante sur laquelle vous voulez l'état de l'impression : ");
-				scanf("%s", nomImprimante);
-				requete.nomImprimante = nomImprimante;
-				
-		        //TODO creer requete de demande d'etat d'avancement d'une impression
-		        
+		        res = creerRequeteEtatImpression(requete);
 		        break;
 		    case 3:
-		   	 	printf("\n\n%s---------- Annulation d'une impression ----------\n%s", GRN, RESET);
-		        type = ANNULATION_IMPRESSION;
-		        requete.type = type;
-		        
-		        //TODO creer requete d'annulation d'une impression
-		        
+		   	 	res = creerRequeteAnnulationImpression(requete);
 		        break;
 		    case 4:
-		    	creerRequeteEtatImprimante(&requete);
+		    	res = creerRequeteEtatImprimante(requete);
 		        break;
-		   default:
+		   	default:
 		   		printf("\n%s/!\\ Le choix effectue n'est pas attribue pour le moment. /!\\%s", RED, RESET);
 				printf("\n");
 				break;
         }
         
-        int numErreur;
-        if(numErreur = envoyerRequete(&requete)!=0){
-			fprintf(stderr, "Client: erreur envoi de la requete\n");
-			return numErreur;
+		int numCommunication;
+
+		// se connecter au serveur
+		if ((numCommunication = demanderCommunication(NOM_SERVEUR)) < 0) {
+			fprintf(stderr, "Client : %s/!\\ Erreur de connexion au serveur %s : %s /!\\%s\n", RED, NOM_SERVEUR, messageErreur((RetourCommunication)numCommunication), RESET);
+			return 1;
+		}
+        
+        if(res != 0) {
+		    if (requete.type == IMPRESSION || requete.type == ETAT_IMPRESSION || requete.type == ANNULATION_IMPRESSION || requete.type == ETAT_IMPRIMANTE) {
+		    	int numErreur;
+				if ((numErreur = envoyerRequete(requete, numCommunication)) != 0){
+					fprintf(stderr, "Client : %s/!\\ Erreur d'envoi de la requete %d /!\\%s\n", RED, requete.idRequete, RESET);
+					return numErreur;
+				}
+			}
+		}
+		
+		printf("\n\n%s---------- Reception reponse ----------\n%s", GRN, RESET);
+		
+		EtatImprimante eimprim;
+		switch (requete.type) {
+		    case IMPRESSION:
+		    	//TODO Reception reponse impression
+		        break;
+		    case ETAT_IMPRESSION:
+		        //TODO Reception reponse etat impression
+		        break;
+		    case ANNULATION_IMPRESSION:
+		   	 	//TODO Reception reponse annulation impression
+		        break;
+		    case ETAT_IMPRIMANTE:
+		    	recevoirOctets(numCommunication, &eimprim, sizeof(EtatImprimante));
+		        break;
+		   	default:
+				break;
         }
 
-			//TODO gérer la réponse du serveur
-		    	
-        
-        choixInterface = 0;
+		//TODO gérer la réponse du serveur
     }
     return 0;
 }
-
-
