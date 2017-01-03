@@ -45,7 +45,7 @@ typedef struct {
 	char* fichier;
 	char* typeFichier;
 	long tailleFichier;
-	char* nomImprimante;
+	char nomImprimante[50];
 	char* nomFichier;
 	int nbCopies;
 	int rectoVerso;

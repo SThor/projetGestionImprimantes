@@ -43,6 +43,7 @@ void lancerImpression(Requete requete) {
 	printf("\tImprimante distante %s : Impression de la requete %d\n", requete.nomImprimante, requete.idRequete);
 			
 	if (fichier != NULL) {
+		
 		fprintf(fichier, "%s", requete.fichier);
 		fclose(fichier);
 	}

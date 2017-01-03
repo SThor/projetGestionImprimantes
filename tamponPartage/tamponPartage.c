@@ -78,24 +78,22 @@ void finRetirer(Moniteur *moniteur) {
 void deposer(Moniteur *moniteur, Requete requete) {
 	int indiceDepot = debutDeposer(moniteur);
 	
-	moniteur->requete[indiceDepot].fichier = malloc(requete.tailleFichier);
-	moniteur->requete[indiceDepot].tailleFichier = requete.tailleFichier;
-	memcpy(moniteur->requete[indiceDepot].fichier, requete.fichier, requete.tailleFichier);
+	memcpy(&moniteur->requete[indiceDepot], &requete, sizeof(Requete));
 	
 	finDeposer(moniteur);
 }
 
-/* Retrait synchronise qui retourne la taille du pointeur du buffer de retrait */
-int retirer(Moniteur *moniteur, Requete* requete) {
+/* Retrait synchronise  */
+Requete retirer(Moniteur *moniteur) {
 	int indiceRetrait = debutRetirer(moniteur);
 	
+	Requete requete;
 	Requete requeteARetirer = moniteur->requete[indiceRetrait];
-	requete = malloc(sizeof(requeteARetirer));
-	memcpy(requete, &requeteARetirer, sizeof(requeteARetirer));
-
+	memcpy(&requete, &requeteARetirer, sizeof(Requete));
+	
 	finRetirer(moniteur);
 	
-	return requeteARetirer.tailleFichier;
+	return requete;
 }
 
 /* Retourne le nombre de cases */

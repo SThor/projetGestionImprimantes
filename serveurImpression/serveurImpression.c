@@ -94,7 +94,7 @@ int initialiserServeurImpression(char* nom) {
 /* Recherche d'une imprimante */
 Imprimante* chercherImprimante(char* nom) {
 	for (int i = 0; i < nbImprimantes; i++) {
-		if ((strcmp(nom, imprimantes[i].nomImprimante) == 0)) {
+		if ((strcmp(imprimantes[i].nomImprimante, nom)) == 0) {
 			return &imprimantes[i];
 		}
 	}
@@ -125,7 +125,7 @@ void* imprimanteLocale(void* args) {
 	fichier = fopen(cheminImprimante, "w");
 	
 	while(1) {
-		retirer(&moniteurImprimanteLocale[numeroImprimante], &requete);
+		requete = retirer(&moniteurImprimanteLocale[numeroImprimante]);
 		int idImprimante;
 		idImprimante = chercherIdImprimante(requete.nomImprimante);
 		if (idImprimante != -1) {
@@ -146,13 +146,14 @@ void* cupsBackend(void* args) {
 	int numeroBackend = *(int*) args;
 	int numCommunication;
 	while(1) {
-		retirer(&moniteurBackend, &requete);
+		requete = retirer(&moniteurBackend);
 		int idImprimante;
 		idImprimante = chercherIdImprimante(requete.nomImprimante);
 		if (idImprimante != -1) {
 			printf("\tCUPS Backend n°%d : Envoi de la requete %d a l'imprimante %d\n", numeroBackend, requete.idRequete, idImprimante);
 			Imprimante* imprimante = chercherImprimante(requete.nomImprimante);
-			if (&imprimante[0].typeImprimante == 0) {
+			if (imprimante->typeImprimante == 0) {
+				printf("TEST\n");
 				deposer(&moniteurImprimanteLocale[idImprimante], requete);
 			} else {
 				while (1) {
@@ -175,16 +176,17 @@ void* cupsBackend(void* args) {
 /* Application du filtre sur la requete */
 void filtrerRequete(Requete requete) {	
 	char* fichier;
+	printf("Transformation du fichier %s de type %s pour l'impression de la requete %d sur %s\n", requete.nomFichier, requete.typeFichier, requete.idRequete, requete.nomImprimante);
 	if (strcmp(requete.typeFichier, "txt") == 0) {
-		fichier = (char*) malloc(sizeof(char)*28 + sizeof(requete.fichier)); 
+		fichier = (char*) malloc(sizeof(char)*requete.tailleFichier); 
 		sprintf(fichier, "EN-TETE POUR FICHIER TXT\n%s", requete.fichier);
 		memcpy(requete.fichier, fichier, requete.tailleFichier + sizeof(char)*28);
 	} else if (strcmp(requete.typeFichier, "png") == 0) {
-		fichier = (char*) malloc(sizeof(char)*28 + sizeof(requete.fichier)); 
+		fichier = (char*) malloc(sizeof(char)*28 + requete.tailleFichier); 
 		sprintf(fichier, "EN-TETE POUR FICHIER PNG\n%s", requete.fichier);
 		memcpy(requete.fichier, fichier, requete.tailleFichier + sizeof(char)*28);
 	} else if (strcmp(requete.typeFichier, "pdf") == 0) {
-		fichier = (char*) malloc(sizeof(char)*28 + sizeof(requete.fichier)); 
+		fichier = (char*) malloc(sizeof(char)*28 + requete.tailleFichier); 
 		sprintf(fichier, "EN-TETE POUR FICHIER PDF\n%s", requete.fichier);
 		memcpy(requete.fichier, fichier, requete.tailleFichier + sizeof(char)*28);
 	}
@@ -196,11 +198,11 @@ void* cupsFilter(void* args) {
 	int numeroRequete;
 	int numeroFiltre = *(int*) args;
 	while(1) {
-		retirer(&moniteurFilter, &requete);
+		requete = retirer(&moniteurFilter);
 		printf("\tCUPS Filter n°%d : Filtrage de la requete %d\n", numeroFiltre, requete.idRequete);
-		printf("TEST");
 		numeroRequete = chercherIdImprimante(requete.nomImprimante);
 		if (numeroRequete != 1) {
+   			printf("\tCUPS Filter n°%d : ", numeroFiltre);
 			filtrerRequete(requete);
 			deposer(&moniteurBackend, requete);
 		}
@@ -222,69 +224,77 @@ int authentifierUtilisateur(pid_t nomUtilisateur) {
 
 /* Traitement des requetes d'impression */
 void traiterImpression(Requete requete) {
+				printf("TEST1\n");
 	deposer(&moniteurFilter, requete);
+				printf("TEST1\n");
 }
 
 /* Traitement des requetes d'etat d'impression */
 void traiterEtatImpression(Requete requete, int numCommunication) {
-	//TODO Traitement en cas de requete d'etat d'impression
+	deposer(&moniteurBackend, requete);
 }
 
 /* Traitement des requetes d'annulation d'impression */
 void traiterAnnulationImpression(Requete requete, int numCommunication) {
-	//TODO Traitement en cas de requete d'annulation d'impression
-	//Passer directement via moniteurBackend
+	deposer(&moniteurBackend, requete);
 }
 
 /* Traitement des requetes d'etat d'imprimante */
 void traiterEtatImprimante(Requete requete, int numCommunication) {
-	//TODO Traitement en cas de requete d'etat d'imprimante
-	Imprimante* imprimante;
 	int numeroImprimante;
 	int nbImpressions;
 	int nbImpressionsMax;
-	imprimante = chercherImprimante(requete.nomImprimante);
+	Imprimante* imprimante = chercherImprimante(requete.nomImprimante);
 	numeroImprimante = chercherIdImprimante(requete.nomImprimante);
-	if (&imprimante[0].typeImprimante == 0) {
-		// Cas ou l'imprimante est locale
-		nbImpressions = getNbCasesRemplies(&moniteurImprimanteLocale[numeroImprimante]);
-		nbImpressionsMax = getNbCases(&moniteurImprimanteLocale[numeroImprimante]);
-	} else {
-		// Cas ou l'imprimante est distante
-		deposer(&moniteurBackend, requete);
-	}
-	
-	EtatImprimante ei;
-	if (nbImpressions == 0) {
-		ei = VIDE;
-	} else {
-		if (nbImpressions < nbImpressionsMax) {
-			ei = IMPRESSIONS_EN_COURS;
+	if (numeroImprimante != -1) {
+		if (imprimante->typeImprimante == 0) {
+			// Cas ou l'imprimante est locale
+			nbImpressions = getNbCasesRemplies(&moniteurImprimanteLocale[numeroImprimante]);
+			nbImpressionsMax = getNbCases(&moniteurImprimanteLocale[numeroImprimante]);
 		} else {
-			ei = PLEINE;
+			// Cas ou l'imprimante est distante
+			deposer(&moniteurBackend, requete);
+		}
+	
+		EtatImprimante ei;
+		if (nbImpressions == 0) {
+			ei = VIDE;
+		} else {
+			if (nbImpressions < nbImpressionsMax) {
+				ei = IMPRESSIONS_EN_COURS;
+			} else {
+				ei = PLEINE;
+			}
+		}
+		if (envoyerOctets(numCommunication, &ei, sizeof(EtatImprimante)) != sizeof(EtatImprimante)) {
+			fprintf(stderr, "%sCUPS Scheduler : /!\\ Erreur d'envoi de la reponse a la requete n°%d : %s /!\\%s\n", RED, requete.idRequete, messageErreur((RetourCommunication)numCommunication), RESET);
+		}
+	} else {
+		EtatImprimante ei = -1;
+		if (envoyerOctets(numCommunication, &ei, sizeof(EtatImprimante)) != sizeof(EtatImprimante)) {
+			fprintf(stderr, "%sCUPS Scheduler : /!\\ Erreur d'envoi de la reponse a la requete n°%d : %s /!\\%s\n", RED, requete.idRequete, messageErreur((RetourCommunication)numCommunication), RESET);
 		}
 	}
-	
-	envoyerOctets(numCommunication, &ei, sizeof(EtatImprimante));
 }
 
 /* Traitement de la requete */
 void traiterRequete(Requete requete, int numCommunication) {
-	printf("Test\n");
-	printf("%d\n", requete.emetteur);
-	printf("%d\n", requete.type);
 	if (authentifierUtilisateur(requete.emetteur) != 0) {
 		switch (requete.type) {
 			case IMPRESSION:
+				printf("Traitement de la requete %d d'impression sur %s\n", requete.idRequete, requete.nomImprimante);
 				traiterImpression(requete);
 				break;
 			case ETAT_IMPRESSION:
+				printf("Traitement de la requete %d d'etat d'impression sur %s\n", requete.idRequete, requete.nomImprimante);
 				traiterEtatImpression(requete, numCommunication);
 				break;
 			case ANNULATION_IMPRESSION:
+				printf("Traitement de la requete %d d'annulation d'impression sur %s\n", requete.idRequete, requete.nomImprimante);
 				traiterAnnulationImpression(requete, numCommunication);
 				break;
 			case ETAT_IMPRIMANTE:
+				printf("Traitement de la requete %d d'etat de %s\n", requete.idRequete, requete.nomImprimante); 
 				traiterEtatImprimante(requete, numCommunication);
 				break;
 		}
@@ -301,7 +311,9 @@ void* cupsScheduler(void* args) {
 	while((numCommunication = accepterCommunication(numServeur)) >= 0) {
 		recevoirOctets(numCommunication, &requete, sizeof(Requete));
    		printf("\tCUPS Scheduler : Une nouvelle requete a ete recue (Emetteur : %d | ID requete : %d)\n", requete.emetteur, requete.idRequete);
+   		printf("\tCUPS Scheduler : ");
    		traiterRequete(requete, numCommunication);
+   		printf("Fichier : %s\n", requete.fichier);
    		cloreCommunication(numCommunication);
 	}
 	pthread_exit(NULL);

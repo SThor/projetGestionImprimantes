@@ -40,8 +40,8 @@ void finRetirer(Moniteur *moniteur);
 /* Depot synchronise */
 void deposer(Moniteur *moniteur, Requete requete);
 
-/* Retrait synchronise qui retourne la taille du pointeur de la requete a retirer */
-int retirer(Moniteur *moniteur, Requete* requete);
+/* Retrait synchronise  */
+Requete retirer(Moniteur *moniteur);
 
 /* Retourne le nombre de cases */
 int getNbCases(Moniteur *moniteur);

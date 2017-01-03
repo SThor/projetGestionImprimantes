@@ -52,10 +52,9 @@ void imprimerRequete(Requete requete){
 }
 
 int envoyerRequete(Requete requete, int numCommunication){
-	imprimerRequete(requete);
-    int lgRequete;
-    
 	printf("\n\n%s---------- Envoi de la requete ----------\n%s", GRN, RESET);
+    int lgRequete;
+	imprimerRequete(requete);
 	
 	// envoyer la requête
 	lgRequete = sizeof(Requete);
@@ -91,7 +90,7 @@ int main(int argc, char** argv) {
         requete.idRequete = etablirIdRequete(requete.emetteur, nbRequetes);
         int res;
 		TypeRequete type;
-		char nomImprimante[255];
+		char nomImprimante[50];
         switch (choixInterface) {
 		    case 1 :
 				printf("\n\n%s---------- Impression d'un fichier ----------\n%s", GRN, RESET);
@@ -129,7 +128,7 @@ int main(int argc, char** argv) {
 	
 					printf("Veuillez entrer le nom de l'imprimante : ");
 					scanf("%s", nomImprimante);
-					requete.nomImprimante = nomImprimante;
+					strcpy(requete.nomImprimante, nomImprimante);
 					int nbCopies = 0;
 					while (nbCopies <= 0) {
 						printf("Veuillez entrer le nombre de copies (> 0) : ");
@@ -144,7 +143,7 @@ int main(int argc, char** argv) {
 					requete.rectoVerso = rectoVerso;
 					res = 1;
 				} else {
-					printf("%s/!\\ Le chemin de fichier specifie ne pointe aucun fichier. /!\\%s", RED, RESET);
+					printf("%s/!\\ Le chemin de fichier specifie ne pointe aucun fichier. /!\\%s\n", RED, RESET);
 					res = 0;
 				}
 		        break;
@@ -155,7 +154,7 @@ int main(int argc, char** argv) {
 				requete.fichier = NULL;
 				printf("Veuillez entrer le nom de l'imprimante : ");
 				scanf("%s", nomImprimante);
-				requete.nomImprimante = nomImprimante;
+				strcpy(requete.nomImprimante, nomImprimante);
 	
 				//TODO Completer la requete avec les informations de l'impression
 	
@@ -172,7 +171,7 @@ int main(int argc, char** argv) {
 				requete.fichier = NULL;
 				printf("Veuillez entrer le nom de l'imprimante : ");
 				scanf("%s", nomImprimante);
-				requete.nomImprimante = nomImprimante;
+				strcpy(requete.nomImprimante, nomImprimante);
 	
 				//TODO Completer la requete avec les informations de l'impression
 	
@@ -188,7 +187,7 @@ int main(int argc, char** argv) {
 				requete.type = type;
 				printf("Veuillez entrer le nom de l'imprimante : ");
 				scanf("%s", nomImprimante);
-				requete.nomImprimante = nomImprimante;
+				strcpy(requete.nomImprimante, nomImprimante);
 	
 				if(strcmp(requete.nomImprimante, "") == 0) {
 					res = 0;
@@ -197,7 +196,7 @@ int main(int argc, char** argv) {
 				}
 		        break;
 		   	default:
-		   		printf("\n%s/!\\ Le choix effectue n'est pas attribue pour le moment. /!\\%s", RED, RESET);
+		   		printf("\n%s/!\\ Le choix effectue n'est pas attribue pour le moment. /!\\%s\n", RED, RESET);
 				printf("\n");
 				break;
         }
@@ -235,6 +234,22 @@ int main(int argc, char** argv) {
 		        break;
 		    case ETAT_IMPRIMANTE:
 		    	recevoirOctets(numCommunication, &eimprim, sizeof(EtatImprimante));
+   				cloreCommunication(numCommunication);
+   				if(eimprim != -1){
+					switch (eimprim) {
+						case IMPRESSIONS_EN_COURS:
+							printf("L'imprimante \"%s\" traite actuellement des impressions\n", requete.nomImprimante);
+							break;
+						case VIDE:
+							printf("L'imprimante \"%s\" est actuellement VIDE\n", requete.nomImprimante);
+							break;
+						case PLEINE:
+					   	 	printf("L'imprimante \"%s\" est actuellement PLEINE\n", requete.nomImprimante);
+							break;
+					}
+		    	} else {
+		    		printf("L'imprimante n'existe pas");
+		    	}
 		        break;
 		   	default:
 				break;
