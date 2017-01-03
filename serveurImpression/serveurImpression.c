@@ -224,9 +224,7 @@ int authentifierUtilisateur(pid_t nomUtilisateur) {
 
 /* Traitement des requetes d'impression */
 void traiterImpression(Requete requete) {
-				printf("TEST1\n");
 	deposer(&moniteurFilter, requete);
-				printf("TEST1\n");
 }
 
 /* Traitement des requetes d'etat d'impression */
@@ -313,7 +311,6 @@ void* cupsScheduler(void* args) {
    		printf("\tCUPS Scheduler : Une nouvelle requete a ete recue (Emetteur : %d | ID requete : %d)\n", requete.emetteur, requete.idRequete);
    		printf("\tCUPS Scheduler : ");
    		traiterRequete(requete, numCommunication);
-   		printf("Fichier : %s\n", requete.fichier);
    		cloreCommunication(numCommunication);
 	}
 	pthread_exit(NULL);

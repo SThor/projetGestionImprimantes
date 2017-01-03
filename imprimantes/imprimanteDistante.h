@@ -24,4 +24,7 @@ void annulerImpression();
 /* Etat d'une demande d'impression */
 void etatImpression();
 
+/* Traitement de la requete */
+void traiterRequete(Requete requete, int numCommunication);
+
 #endif

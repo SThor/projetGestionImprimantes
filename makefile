@@ -1,4 +1,4 @@
-CFLAGS=-Wall -g -std=c11
+CFLAGS=-Wall -g -std=c99
 EXEC= serveurImpressionExe imprimanteDistanteExe utilisateurExe
 
 all: $(EXEC)

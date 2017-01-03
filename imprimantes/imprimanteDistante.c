@@ -59,6 +59,46 @@ void etatImpression() {
 	//TODO Retourner etat de l'impression
 }
 
+/* Traitement de la requete */
+void traiterRequete(Requete requete, int numCommunication) {
+	printf("\tImprimante distante : Une demande d'impression a ete recue (Emetteur : %d | ID requete : %d)\n", requete.emetteur, requete.idRequete);
+	switch (requete.type) {
+		case IMPRESSION:
+			printf("Traitement de la requete %d d'impression sur %s\n", requete.idRequete, requete.nomImprimante);
+			//traiterImpression(requete);
+			//TODO Realiser le meme procede que sur le serveur d'impression, avec des depot et retraits sur le moniteur moniteurImprimanteDistante
+			break;
+		case ETAT_IMPRESSION:
+			printf("Traitement de la requete %d d'etat d'impression sur %s\n", requete.idRequete, requete.nomImprimante);
+			//traiterEtatImpression(requete, numCommunication);
+			break;
+		case ANNULATION_IMPRESSION:
+			printf("Traitement de la requete %d d'annulation d'impression sur %s\n", requete.idRequete, requete.nomImprimante);
+			//traiterAnnulationImpression(requete, numCommunication);
+			break;
+		case ETAT_IMPRIMANTE:
+			printf("Traitement de la requete %d d'etat de %s\n", requete.idRequete, requete.nomImprimante); 
+			//traiterEtatImprimante(requete, numCommunication);
+			/* TODO Renvoyer l'etat
+			int nbImpressions = getNbCasesRemplies(&moniteurImprimanteDistante);
+			int nbImpressionsMax = getNbCases(&moniteurImprimanteDistante);
+			EtatImprimante ei;
+			if (nbImpressions == 0) {
+				ei = VIDE;
+			} else {
+				if (nbImpressions < nbImpressionsMax) {
+					ei = IMPRESSIONS_EN_COURS;
+				} else {
+					ei = PLEINE;
+				}
+			}
+			if (envoyerOctets(numCommunication, &ei, sizeof(EtatImprimante)) != sizeof(EtatImprimante)) {
+				fprintf(stderr, "%sImprimante distante : /!\\ Erreur d'envoi de la reponse a la requete n°%d : %s /!\\%s\n", RED, requete.idRequete, messageErreur((RetourCommunication)numCommunication), RESET);
+			}*/
+			break;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	if (argc != 2) {
 		fprintf(stderr, "Usage Imprimante Distante : %s nomImprimante\n", argv[0]);
@@ -68,11 +108,12 @@ int main(int argc, char* argv[]) {
 	int numCommunication;
 	numServeur = creerImprimante(argv[1]);
 	Requete requete;
+	moniteurImprimanteDistante = creerMoniteur();
+	
 	while (1) {
 		while((numCommunication = accepterCommunication(numServeur)) >= 0) {
 			recevoirOctets(numCommunication, &requete, sizeof(Requete));
-	   		printf("\tImprimante distante : Une demande d'impression a ete recue (Emetteur : %d | ID requete : %d)\n", requete.emetteur, requete.idRequete);
-	   		lancerImpression(requete);
+	   		traiterRequete(requete, numCommunication);
 	   		cloreCommunication(numCommunication);
 		}
 	}
